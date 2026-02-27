@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import yfinance as yf
 import json
+import time  # Need this for the Auto-Refresh!
 from llm_engine import analyze_sentiment_batch
 from scraper import fetch_financial_news
 
@@ -15,14 +16,15 @@ if "news_df" not in st.session_state:
 # --- SIDEBAR: Control Panel ---
 with st.sidebar:
     st.markdown("## 🕹️ Scanner Controls")
-    num_headlines = st.slider("Headlines to Scan", 5, 30, 10)
+    # Upgraded slider to 100 max for the 64GB supercomputer!
+    num_headlines = st.slider("Headlines to Scan", 5, 100, 10)
     run_btn = st.button("🚀 Scan Live Market News", use_container_width=True)
 
 st.title("📰 Interactive News-to-Chart Agent")
 
 # --- ACTION 1: FETCH AND ANALYZE NEWS ---
 if run_btn:
-    with st.spinner("🤖 Local AI is analyzing headlines..."):
+    with st.spinner(f"🤖 Local AI is analyzing {num_headlines} headlines... (Let it cook)"):
         headlines = fetch_financial_news(count=num_headlines)
         res = analyze_sentiment_batch(headlines)
         
@@ -42,8 +44,6 @@ if not st.session_state.news_df.empty:
     st.markdown("### 🎯 Select a Headline to Analyze its Stock")
     selected_headline = st.selectbox("Choose a breaking news story:", df['headline'].tolist())
     
-    # --- SAFE EXTRACTION LAYER ---
-    # We find the row for the selected headline
     # --- SAFE EXTRACTION LAYER ---
     selected_data = df[df['headline'] == selected_headline].iloc[0]
     
@@ -78,6 +78,8 @@ if not st.session_state.news_df.empty:
     else:
         target_reasoning = str(raw_logic)
     
+    st.markdown("---")
+    
     # --- UI LAYOUT ---
     colA, colB = st.columns([3, 1])
     
@@ -85,7 +87,6 @@ if not st.session_state.news_df.empty:
         st.subheader(f"🤖 Agent Verdict")
         st.markdown(f"**Ticker Extracted:** `{target_ticker}`")
         
-        # Sentiment-based styling
         if target_sentiment == 'Bullish':
             st.success(f"**Bias:** {target_sentiment} ({target_confidence}%)")
         elif target_sentiment == 'Bearish':
@@ -96,13 +97,13 @@ if not st.session_state.news_df.empty:
         st.markdown(f"**Logic:** *{target_reasoning}*")
 
     with colA:
-        st.subheader(f"📊 {target_ticker} Live Chart")
+        st.subheader(f"📊 {target_ticker} Live Chart (1m Candles)")
         try:
-            # Download 1 month of daily data
-            chart_data = yf.download(target_ticker, period="1d", interval="1m")
+            # 🚀 THE DAY-TRADER UPGRADE: 1-Day period, 1-Minute interval, Pre-Market Data UNLOCKED!
+            chart_data = yf.download(target_ticker, period="1d", interval="1m", prepost=True)
             
             if not chart_data.empty:
-                # Handle MultiIndex columns if necessary (specific to certain yfinance versions)
+                # Handle MultiIndex columns (crucial for newer yfinance versions)
                 if isinstance(chart_data.columns, pd.MultiIndex):
                     chart_data.columns = chart_data.columns.droplevel(1)
                     
@@ -123,8 +124,22 @@ if not st.session_state.news_df.empty:
                 )
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning(f"⚠️ Market data for '{target_ticker}' not found. Showing SPY instead.")
+                st.warning(f"⚠️ Live market data for '{target_ticker}' not found yet today.")
         except Exception as e:
             st.error(f"Chart Error for {target_ticker}: {e}")
+            
+    # --- THE LIVE AUTO-REFRESH HACK ---
+    st.markdown("---")
+    auto_col1, auto_col2 = st.columns([1, 4])
+    
+    with auto_col1:
+        auto_refresh = st.toggle("🔴 Live Auto-Refresh (1m)")
+        
+    with auto_col2:
+        if auto_refresh:
+            st.caption("⏳ Auto-refreshing data in 60 seconds...")
+            time.sleep(60)
+            st.rerun()
+
 else:
     st.info("👈 Click 'Scan Live Market News' in the sidebar to begin.")
