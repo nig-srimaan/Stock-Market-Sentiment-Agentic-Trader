@@ -7,6 +7,7 @@ import time
 import streamlit.components.v1 as components
 from llm_engine import analyze_sentiment_batch
 from scraper import fetch_financial_news
+from smc_engine import generate_smc_signal
 
 # --- IMPORT DEV 1's QUANT ENGINE ---
 try:
@@ -197,57 +198,75 @@ with tab3:
             st.dataframe(pd.DataFrame(trade_log), use_container_width=True, hide_index=True)
         else:
             st.info("Agent Status: Holding Cash. No high-confidence actionable setups found.")
-
 # ==========================================
-# TAB 4: BRAND NEW SMC UI BRIDGE!
+# TAB 4: INSTITUTIONAL SMC ALGORITHM
 # ==========================================
 with tab4:
-    st.markdown("### 📐 Institutional Smart Money Concepts (SMC)")
+    st.markdown("### 📐 Smart Money Concepts (SMC) Engine")
     st.caption("Advanced Technical Analysis: Multi-Timeframe Structure, FVGs, and Liquidity.")
     
+    # User Control Panel
     st.markdown("#### ⚙️ Strategy Configuration")
-    smc_ticker_sel = st.selectbox("Select Asset for SMC Analysis:", POPULAR_STOCKS, key="smc_ticker")
-    smc_ticker = smc_ticker_sel.split(" - ")[0].strip()
+    
+    # Let the user pick a specific coin/stock to run the SMC math on
+    smc_selected = st.selectbox("Select Asset for SMC Analysis:", POPULAR_STOCKS, key="smc_combo")
+    smc_ticker = smc_selected.split(" - ")[0].strip()
     
     colA, colB = st.columns(2)
     with colA:
-        strategy = st.selectbox("Trading Model:", ["Mean Reversion (FVG Fill)", "Break & Retest (Trend Follow)"], key="smc_strat")
+        strategy = st.selectbox("Trading Model:", [
+            "Mean Reversion (FVG Fill)", 
+            "Break & Retest (Trend Follow)", 
+            "Liquidity Sweep"
+        ])
     with colB:
-        risk_profile = st.selectbox("Risk/Reward Ratio:", ["1:2 (Conservative)", "1:3 (Standard)", "1:5 (Aggressive Prop Firm)"], key="smc_rr")
+        risk_profile = st.selectbox("Risk/Reward Ratio:", [
+            "1:2 (Conservative)", 
+            "1:3 (Standard)", 
+            "1:5 (Aggressive Prop Firm)"
+        ])
         
-    analyze_btn = st.button("⚡ Run Institutional Analysis", use_container_width=True)
     st.markdown("---")
     
-    if analyze_btn:
-        with st.spinner(f"🧠 Quant Engine is calculating structure for {smc_ticker}..."):
+    # THE EXECUTION BUTTON
+    if st.button("🧠 Run SMC Quant Math", use_container_width=True):
+        with st.spinner(f"Dev 1's Math Engine is calculating exact levels for {smc_ticker}..."):
             try:
-                df_smc = yf.download(smc_ticker, period="5d", interval="15m") 
-                if df_smc.empty:
-                    st.error("⚠️ Market data not found. Try another ticker.")
-                else:
-                    if isinstance(df_smc.columns, pd.MultiIndex):
-                        df_smc.columns = df_smc.columns.droplevel(1)
+                # 1. Fetch 5-Minute Data (Best for SMC / FVG detection)
+                smc_data = yf.download(smc_ticker, period="5d", interval="5m")
+                
+                if not smc_data.empty:
+                    # Clean up Yahoo Finance multi-index weirdness
+                    if isinstance(smc_data.columns, pd.MultiIndex):
+                        smc_data.columns = smc_data.columns.droplevel(1)
                         
-                    # CALLING DEV 1'S MATH!
-                    setup = generate_smc_signal(df_smc, strategy, risk_profile)
+                    # 2. CALL DEV 1's MATH ENGINE!
+                    setup = generate_smc_signal(smc_data, strategy, risk_profile)
                     
-                    st.markdown("#### 🎯 Live Trade Setup")
-                    st.info(f"**Agent Logic:** {setup['logic']}")
+                    # 3. RENDER THE RESULTS TO THE UI
+                    st.markdown("#### ⚡ Live Trade Setup")
+                    
+                    # Smart Currency formatter (Rupees vs Dollars)
+                    currency = "₹" if ".NS" in smc_ticker else "$"
                     
                     res_col1, res_col2, res_col3, res_col4 = st.columns(4)
-                    entry_price = float(setup['entry'])
-                    sl_price = float(setup['sl'])
-                    tp_price = float(setup['tp'])
-                    prefix = "₹" if ".NS" in smc_ticker else "$"
+                    res_col1.metric("Action Signal", setup["signal"])
+                    res_col2.metric("Entry Price", f"{currency}{setup['entry']:.2f}")
                     
-                    res_col1.metric("Signal", setup['signal'])
-                    res_col2.metric("Entry Price", f"{prefix}{entry_price:.2f}")
-                    res_col3.metric("Stop Loss (SL)", f"{prefix}{sl_price:.2f}")
-                    res_col4.metric("Take Profit (TP)", f"{prefix}{tp_price:.2f}")
+                    # Only show SL/TP if a valid setup was actually found
+                    if setup["sl"] > 0:
+                        res_col3.metric("Stop Loss (SL)", f"{currency}{setup['sl']:.2f}")
+                        res_col4.metric("Take Profit (TP)", f"{currency}{setup['tp']:.2f}")
+                    else:
+                        res_col3.metric("Stop Loss (SL)", "--")
+                        res_col4.metric("Take Profit (TP)", "--")
+                        
+                    st.info(f"**🤖 Quant Logic:** {setup['logic']}")
+                    
+                else:
+                    st.warning("⚠️ No recent market data found to run SMC math.")
             except Exception as e:
-                st.error(f"Quant Engine Error: {e}")
-    else:
-        st.info("⏳ Select your parameters and click 'Run Institutional Analysis' to calculate high-probability zones.")
+                st.error(f"SMC Engine Error: {e}")
 
 # --- LIVE AUTO REFRESH CLOCK ---
 st.markdown("---")
