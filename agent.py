@@ -5,26 +5,32 @@ import json
 def run_trading_agent():
     print("🚀 Starting Enterprise Stock Market Sentiment Agent...\n")
     
-    # 1. Grab a massive list of news (Make sure scraper.py is set to grab 50 or 100!)
-    headlines = fetch_financial_news()
+    headlines = fetch_financial_news(count=50) # Set a default count
     
     if not headlines:
         print("❌ No headlines found. Exiting.")
         return
 
-    # 2. Send the ENTIRE list to the AI in one single API call
+    ai_verdict_json = "[]" # Initialize this so it doesn't crash the except block
+    
     try:
         ai_verdict_json = analyze_sentiment_batch(headlines)
-        
-        # Convert the AI's text response back into a Python list
         verdicts = json.loads(ai_verdict_json)
         
+        if len(verdicts) == 0:
+            print("⚠️ AI returned empty analysis.")
+            return
+
         print(f"\n✅ Successfully analyzed {len(verdicts)} headlines instantly!\n")
         
-        # Print them out beautifully
         for item in verdicts:
-            print(f"📰 {item['headline']}")
-            print(f"🤖 {item['sentiment']} ({item['confidence']}%) - {item['reasoning']}")
+            # Using .get() prevents KeyError if the AI hallucinates a column name
+            sentiment = item.get('sentiment', 'Unknown')
+            confidence = item.get('confidence', 0)
+            reasoning = item.get('reasoning', 'No reason provided')
+            
+            print(f"📰 {item.get('headline', 'Unknown Headline')}")
+            print(f"🤖 {sentiment} ({confidence}%) - {reasoning}")
             print("-" * 80)
             
     except Exception as e:
