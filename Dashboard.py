@@ -1,40 +1,67 @@
 import streamlit as st
 import pandas as pd
+import time
 
-# 1. Set up the page layout
+# --- 1. PORTFOLIO MEMORY (SESSION STATE) ---
+# This ensures the app remembers your money and stocks when it refreshes
+if 'cash' not in st.session_state:
+    st.session_state.cash = 10000.00
+if 'holdings' not in st.session_state:
+    st.session_state.holdings = {"AAPL": 0, "MSFT": 0, "TSLA": 0}
+if 'logs' not in st.session_state:
+    st.session_state.logs = ["🟢 [SYSTEM] Portfolio memory initialized."]
+
+# --- 2. TRADING LOGIC (THE ENGINE) ---
+def execute_trade(action, ticker, shares, price):
+    cost = shares * price
+    if action == "BUY" and st.session_state.cash >= cost:
+        st.session_state.cash -= cost
+        st.session_state.holdings[ticker] += shares
+        st.session_state.logs.insert(0, f"🔵 [TRADE] BOUGHT {shares} {ticker} @ ${price} (-${cost})")
+    elif action == "SELL" and st.session_state.holdings[ticker] >= shares:
+        st.session_state.cash += cost
+        st.session_state.holdings[ticker] -= shares
+        st.session_state.logs.insert(0, f"🟠 [TRADE] SOLD {shares} {ticker} @ ${price} (+${cost})")
+    else:
+        st.session_state.logs.insert(0, f"🔴 [ERROR] Trade failed: Insufficient funds or shares for {ticker}.")
+
+
+# --- 3. THE USER INTERFACE ---
 st.set_page_config(page_title="AI Agentic Trader", layout="wide")
-
 st.title("📈 Stock Market Sentiment Agentic Trader")
-st.markdown("Welcome to the Dashboard. The AI Agent analyzes news and trades automatically based on market sentiment.")
 
-# 2. Create two columns: one for Portfolio, one for Live News
 col1, col2 = st.columns([1, 2])
 
-# --- COLUMN 1: THE PORTFOLIO ---
 with col1:
     st.header("💼 Portfolio Status")
     
-    # Mock starting balance
-    st.metric(label="Current Cash Balance", value="$10,000.00", delta="0.00")
-    st.metric(label="Current Risk Level", value="Medium")
+    # Now the cash updates dynamically!
+    st.metric(label="Current Cash Balance", value=f"${st.session_state.cash:,.2f}")
     
     st.subheader("Current Holdings")
-    # A dummy table to show what stocks the bot "owns" right now
-    holdings = pd.DataFrame({
-        "Ticker": ["AAPL", "MSFT"],
-        "Shares": [10, 5],
-        "Value": ["$1,750", "$2,100"]
-    })
-    st.dataframe(holdings, hide_index=True)
+    # Convert our memory dictionary into a nice table
+    df_holdings = pd.DataFrame(list(st.session_state.holdings.items()), columns=['Ticker', 'Shares'])
+    st.dataframe(df_holdings, hide_index=True, use_container_width=True)
 
-# --- COLUMN 2: THE AI BRAIN ---
 with col2:
     st.header("📰 Live AI Sentiment Analysis")
+    st.info("Waiting for Dev 1's Live Data Engine...")
     
-    # This is a placeholder until Dev 1 connects their scraper
-    st.info("⏳ Waiting for Data Engine (Dev 1) to send live news...")
+    # --- DEV 2 TESTING AREA ---
+    st.subheader("🛠️ Dev 2 Testing Tools")
+    st.caption("Use this to test the portfolio math before Dev 1 connects the AI.")
     
+    test_col1, test_col2 = st.columns(2)
+    with test_col1:
+        if st.button("Simulate AI: BULLISH AAPL (Buy 5)"):
+            execute_trade("BUY", "AAPL", 5, 150.00)
+            st.rerun() # Forces the screen to update
+    with test_col2:
+        if st.button("Simulate AI: BEARISH AAPL (Sell 5)"):
+            execute_trade("SELL", "AAPL", 5, 155.00)
+            st.rerun()
+            
+    # --- LOGS ---
     st.subheader("Recent Agent Actions")
-    # A mock log of what the bot is doing
-    st.write("🟢 **[SYSTEM]** AI Agent initialized and ready.")
-    st.write("🟡 **[STANDBY]** Waiting for sentiment triggers to execute trades.")
+    for log in st.session_state.logs[:5]: # Show the 5 most recent logs
+        st.write(log)
