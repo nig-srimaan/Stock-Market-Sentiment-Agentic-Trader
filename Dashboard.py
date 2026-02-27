@@ -68,21 +68,34 @@ with tab1:
     else: tv_ticker = "NASDAQ:" + manual_ticker
     
     if manual_ticker:
+        # 🚀 THE 1-SECOND TICK CHART: Native TradingView Widget!
         html_code = f"""
-        <div class="tradingview-widget-container" style="height:100%;width:100%">
-          <div id="tradingview_widget" style="height:calc(100% - 32px);width:100%"></div>
+        <div class="tradingview-widget-container" style="height:600px;width:100%">
+          <div id="tradingview_widget" style="height:100%;width:100%"></div>
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
-          new TradingView.widget({{
-          "autosize": true, "symbol": "{tv_ticker}", "interval": "1",
-          "timezone": "exchange", "theme": "dark", "style": "1", "locale": "en",
-          "enable_publishing": false, "backgroundColor": "#0E1117",
-          "hide_top_toolbar": false, "save_image": false, "container_id": "tradingview_widget"
-        }});
+          new TradingView.widget(
+          {{
+          "autosize": true,
+          "symbol": "{tv_ticker}",
+          "interval": "1",
+          "timezone": "exchange",
+          "theme": "dark",
+          "style": "1",
+          "locale": "en",
+          "enable_publishing": false,
+          "backgroundColor": "#0E1117",
+          "hide_top_toolbar": false,
+          "save_image": false,
+          "container_id": "tradingview_widget"
+        }}
+          );
           </script>
         </div>
         """
-        components.html(html_code, height=500)
+        
+        # Render the live widget directly inside Streamlit (Set height to 600 here too!)
+        components.html(html_code, height=600)
 
 # ==========================================
 # TAB 2: AI NEWS & PRICE TARGETS
