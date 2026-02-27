@@ -26,9 +26,11 @@ POPULAR_STOCKS = [
 st.title("⚡ Agentic Trading Terminal")
 
 # --- ACTION 1: AUTOMATIC BACKGROUND AI SCANNER ---
+# --- ACTION 1: AUTOMATIC BACKGROUND AI SCANNER ---
 if st.session_state.news_df.empty:
-    with st.spinner("🤖 System Booting: AI is analyzing global headlines... (This may take a minute)"):
-        headlines = fetch_financial_news(count=50) 
+    with st.spinner("🤖 System Booting: AI is analyzing live headlines... (Optimized for speed)"):
+        # Reduced from 50 to 15 for lightning-fast demo boot times!
+        headlines = fetch_financial_news(count=15) 
         res = analyze_sentiment_batch(headlines)
         
         try:
