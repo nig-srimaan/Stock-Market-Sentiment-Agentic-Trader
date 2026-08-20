@@ -142,20 +142,35 @@ def detect_fvg(df):
                 })
     return fvg_bullish, fvg_bearish
 
-def detect_liquidity_sweep(df, window=14):
+def detect_liquidity_sweep(df, window=14, cooldown=None):
+    """cooldown: minimum number of candles between two signals of the same
+    type (Bullish/Bearish Sweep), so one structural event doesn't re-fire
+    on every candle while price lingers near the swept level. Defaults to
+    `window` candles."""
+    if cooldown is None:
+        cooldown = window
     sweeps = []
     rolling_high = df['High'].rolling(window=window).max().shift(1)
     rolling_low = df['Low'].rolling(window=window).min().shift(1)
+    last_fire = {'Bearish Sweep': -cooldown, 'Bullish Sweep': -cooldown}
     
     for i in range(window, len(df)):
         if df['High'].iloc[i] > rolling_high.iloc[i] and df['Close'].iloc[i] < rolling_high.iloc[i]:
-            sweeps.append({'time': df.index[i], 'type': 'Bearish Sweep', 'price': df['High'].iloc[i]})
+            if i - last_fire['Bearish Sweep'] >= cooldown:
+                sweeps.append({'time': df.index[i], 'type': 'Bearish Sweep', 'price': df['High'].iloc[i]})
+                last_fire['Bearish Sweep'] = i
         elif df['Low'].iloc[i] < rolling_low.iloc[i] and df['Close'].iloc[i] > rolling_low.iloc[i]:
-            sweeps.append({'time': df.index[i], 'type': 'Bullish Sweep', 'price': df['Low'].iloc[i]})
+            if i - last_fire['Bullish Sweep'] >= cooldown:
+                sweeps.append({'time': df.index[i], 'type': 'Bullish Sweep', 'price': df['Low'].iloc[i]})
+                last_fire['Bullish Sweep'] = i
     return sweeps
 
-def detect_break_and_retest(df, window=14, margin=0.002):
+def detect_break_and_retest(df, window=14, margin=0.002, cooldown=None):
+    """cooldown: see detect_liquidity_sweep — same fix, same reasoning."""
+    if cooldown is None:
+        cooldown = window
     signals = []
+    last_fire = {'Bullish B&R': -cooldown, 'Bearish B&R': -cooldown}
     for i in range(window*2, len(df)):
         past_res = df['High'].iloc[i-window*2 : i-window].max()
         past_sup = df['Low'].iloc[i-window*2 : i-window].min()
@@ -163,12 +178,16 @@ def detect_break_and_retest(df, window=14, margin=0.002):
         recent_breakout = df['Close'].iloc[i-window : i].max() > past_res
         retest_touch = (past_res * (1 - margin)) <= df['Low'].iloc[i] <= (past_res * (1 + margin))
         if recent_breakout and retest_touch and df['Close'].iloc[i] > df['Open'].iloc[i]:
-            signals.append({'time': df.index[i], 'type': 'Bullish B&R', 'price': past_res})
+            if i - last_fire['Bullish B&R'] >= cooldown:
+                signals.append({'time': df.index[i], 'type': 'Bullish B&R', 'price': past_res})
+                last_fire['Bullish B&R'] = i
             
         recent_breakdown = df['Close'].iloc[i-window : i].min() < past_sup
         retest_touch_bear = (past_sup * (1 - margin)) <= df['High'].iloc[i] <= (past_sup * (1 + margin))
         if recent_breakdown and retest_touch_bear and df['Close'].iloc[i] < df['Open'].iloc[i]:
-            signals.append({'time': df.index[i], 'type': 'Bearish B&R', 'price': past_sup})
+            if i - last_fire['Bearish B&R'] >= cooldown:
+                signals.append({'time': df.index[i], 'type': 'Bearish B&R', 'price': past_sup})
+                last_fire['Bearish B&R'] = i
     return signals
 
 def render_dynamic_chart(df, ticker_name, strategy_choice):
@@ -192,8 +211,8 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
         if sweeps:
             fig.add_trace(go.Scatter(
                 x=[s['time'] for s in sweeps], y=[s['price'] for s in sweeps],
-                mode='markers+text', marker=dict(symbol='x', size=12, color='orange'),
-                text=[s['type'] for s in sweeps], textposition='top center', name="Sweep"
+                mode='markers', marker=dict(symbol='x', size=10, color='orange'),
+                hovertext=[s['type'] for s in sweeps], hoverinfo='text+x+y', name="Sweep"
             ))
             
     elif "Break" in strategy_choice:
@@ -201,33 +220,28 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
         if brs:
             fig.add_trace(go.Scatter(
                 x=[s['time'] for s in brs], y=[s['price'] for s in brs],
-                mode='markers+text', marker=dict(symbol='circle', size=12, color='cyan'),
-                text=[s['type'] for s in brs], textposition='bottom center', name="B&R"
+                mode='markers', marker=dict(symbol='circle', size=10, color='cyan'),
+                hovertext=[s['type'] for s in brs], hoverinfo='text+x+y', name="B&R"
             ))
 
-    # Hide overnight hours to make chart tight — branch by market, since
-    # US, NSE, and crypto all have different (or no) trading-hour gaps.
+    # Hide weekend gaps. NOTE: we deliberately do NOT add an intraday
+    # "hide overnight hours" rangebreak here. Plotly's hour-pattern
+    # rangebreaks need numeric hours + pattern="hour" (e.g.
+    # bounds=[16, 9.5], pattern="hour") — the previous string-time format
+    # ("16:00"/"09:30") was silently a no-op, which is why every trading
+    # day rendered as a separate squished island with big gaps between
+    # them. Switching to the correct numeric format works, BUT Plotly.js
+    # has a known bug where hour-pattern rangebreaks can break candlestick
+    # rendering (missing open/close boxes, broken hover). Given that's a
+    # live-demo risk, we're keeping only the weekend skip — you'll see a
+    # small flat gap between trading days instead, which is a safe
+    # trade-off. If you want the intraday gaps removed too, the numeric
+    # form is: dict(bounds=[16, 9.5], pattern="hour") for US or
+    # dict(bounds=[15.5, 9.25], pattern="hour") for NSE — test it locally
+    # first since it's a known-flaky combination with candlesticks.
     is_crypto = "-" in ticker_name and "USD" in ticker_name  # e.g. BTC-USD, ETH-USD
-    is_nse = ".NS" in ticker_name
-
-    if is_crypto:
-        pass  # crypto trades 24/7 — no rangebreaks at all
-    elif is_nse:
-        # NSE regular trading hours: 9:15 AM - 3:30 PM IST
-        fig.update_xaxes(
-            rangebreaks=[
-                dict(bounds=["15:30", "09:15"]),
-                dict(bounds=["sat", "mon"])
-            ]
-        )
-    else:
-        # US equities: 9:30 AM - 4:00 PM ET
-        fig.update_xaxes(
-            rangebreaks=[
-                dict(bounds=["16:00", "09:30"]),
-                dict(bounds=["sat", "mon"])
-            ]
-        )
+    if not is_crypto:
+        fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
 
     fig.update_layout(
         title=f"{ticker_name} - {strategy_choice} Analysis",
