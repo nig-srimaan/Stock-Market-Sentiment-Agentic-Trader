@@ -5,11 +5,14 @@ import json
 def run_trading_agent():
     print("🚀 Starting Enterprise Stock Market Sentiment Agent...\n")
     
-    headlines = fetch_financial_news(count=50) # Set a default count
+    headlines, is_fallback = fetch_financial_news(count=50) # Set a default count
     
     if not headlines:
         print("❌ No headlines found. Exiting.")
         return
+
+    if is_fallback:
+        print("⚠️ Running on FALLBACK data (live scrape failed) — not live headlines.\n")
 
     ai_verdict_json = "[]" # Initialize this so it doesn't crash the except block
     
