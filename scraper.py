@@ -6,6 +6,12 @@ from bs4 import XMLParsedAsHTMLWarning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 def fetch_financial_news(count=15):
+    """
+    Returns (news_list, is_fallback).
+    is_fallback=True means the live scrape failed and canned offline data
+    is being used instead — callers should surface this to the user rather
+    than silently presenting fallback data as if it were live.
+    """
     # UPGRADED URL: Now searches Indian Markets + Global Equities!
     url = "https://news.google.com/rss/search?q=(NSE+OR+BSE+OR+Nifty+OR+Sensex+OR+stock+market)+when:1d&hl=en-IN&gl=IN&ceid=IN:en"
     headers = {
@@ -19,13 +25,18 @@ def fetch_financial_news(count=15):
         
         news_list = []
         for item in items[:count]:
-            title = item.title.text.rsplit(' - ', 1)[0]
-            news_list.append(title)
+            # Skip a single malformed item instead of letting it abort
+            # the whole scrape and silently dump us into fallback data.
+            try:
+                title = item.title.text.rsplit(' - ', 1)[0]
+                news_list.append(title)
+            except AttributeError:
+                continue
             
         if not news_list:
             raise ValueError("Feed empty")
             
-        return news_list
+        return news_list, False
         
     except Exception as e:
         print(f"⚠️ Scraper blocked. Using Global/Indian Fail-Safe data...")
@@ -43,4 +54,4 @@ def fetch_financial_news(count=15):
         while len(fallback_news) < count:
             fallback_news.extend(fallback_news)
             
-        return fallback_news[:count]
+        return fallback_news[:count], True
