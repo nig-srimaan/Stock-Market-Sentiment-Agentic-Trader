@@ -12,9 +12,12 @@ import streamlit.components.v1 as components
 try:
     from llm_engine import analyze_sentiment_batch
     from scraper import fetch_financial_news
-    from smc_engine import generate_smc_signal
 except ImportError:
     pass # Will gracefully skip if your local engine files aren't found
+# Note: smc_engine.py's generate_smc_signal is NOT used here — this dashboard's
+# SMC tab has its own detect_fvg / detect_liquidity_sweep / detect_break_and_retest
+# functions defined below. smc_engine.py is kept in the repo as a standalone module
+# but is not wired into this dashboard.
 
 st.set_page_config(page_title="Agentic Stock Scanner", layout="wide", initial_sidebar_state="expanded")
 
@@ -202,8 +205,23 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
                 text=[s['type'] for s in brs], textposition='bottom center', name="B&R"
             ))
 
-    # Hide overnight hours to make chart tight (unless it's 24/7 crypto)
-    if "USD" not in ticker_name:
+    # Hide overnight hours to make chart tight — branch by market, since
+    # US, NSE, and crypto all have different (or no) trading-hour gaps.
+    is_crypto = "-" in ticker_name and "USD" in ticker_name  # e.g. BTC-USD, ETH-USD
+    is_nse = ".NS" in ticker_name
+
+    if is_crypto:
+        pass  # crypto trades 24/7 — no rangebreaks at all
+    elif is_nse:
+        # NSE regular trading hours: 9:15 AM - 3:30 PM IST
+        fig.update_xaxes(
+            rangebreaks=[
+                dict(bounds=["15:30", "09:15"]),
+                dict(bounds=["sat", "mon"])
+            ]
+        )
+    else:
+        # US equities: 9:30 AM - 4:00 PM ET
         fig.update_xaxes(
             rangebreaks=[
                 dict(bounds=["16:00", "09:30"]),
@@ -229,6 +247,12 @@ if "news_df" not in st.session_state:
 
 if "has_scanned" not in st.session_state:
     st.session_state.has_scanned = False
+
+if "smc_has_run" not in st.session_state:
+    st.session_state.smc_has_run = False
+
+if "news_is_fallback" not in st.session_state:
+    st.session_state.news_is_fallback = False
 
 POPULAR_STOCKS = [
     "NVDA - Nvidia Corp", "AAPL - Apple Inc", "MSFT - Microsoft", "TSLA - Tesla", 
@@ -256,7 +280,8 @@ st.title("Stockx📈")
 if not st.session_state.has_scanned:
     with st.spinner("🤖 System Booting: AI is analyzing live headlines..."):
         try:
-            headlines = fetch_financial_news(count=15) 
+            headlines, is_fallback = fetch_financial_news(count=15)
+            st.session_state.news_is_fallback = is_fallback
             res = analyze_sentiment_batch(headlines)
             data = json.loads(res)
             if len(data) > 0:
@@ -287,10 +312,22 @@ with tab1:
     selected_option = st.selectbox("Search Asset:", POPULAR_STOCKS)
     manual_ticker = selected_option.split(" - ")[0].strip()
     
+    # Not every US ticker actually trades on NASDAQ — mapping the wrong
+    # exchange makes the TradingView widget fail to load that symbol.
+    EXCHANGE_MAP = {
+        "SPY": "AMEX", "QQQ": "NASDAQ", "PLTR": "NYSE",
+        "NVDA": "NASDAQ", "AAPL": "NASDAQ", "MSFT": "NASDAQ", "TSLA": "NASDAQ",
+        "AMZN": "NASDAQ", "GOOGL": "NASDAQ", "META": "NASDAQ",
+    }
+
     tv_ticker = manual_ticker
-    if ".NS" in manual_ticker: tv_ticker = "NSE:" + manual_ticker.replace(".NS", "")
-    elif "-" in manual_ticker: tv_ticker = "CRYPTO:" + manual_ticker.replace("-", "")
-    else: tv_ticker = "NASDAQ:" + manual_ticker 
+    if ".NS" in manual_ticker:
+        tv_ticker = "NSE:" + manual_ticker.replace(".NS", "")
+    elif "-" in manual_ticker:
+        tv_ticker = "CRYPTO:" + manual_ticker.replace("-", "")
+    else:
+        exchange = EXCHANGE_MAP.get(manual_ticker, "NASDAQ")
+        tv_ticker = f"{exchange}:{manual_ticker}"
     
     if manual_ticker:
         html_code = f"""
@@ -311,11 +348,19 @@ with tab1:
 
 # ==========================================
 # TAB 2: AI NEWS FEED
+# (wrapped in a fragment so its selectbox doesn't force a full-page
+#  rerun that would reload the TradingView widget in Tab 1)
 # ==========================================
-with tab2:
+@st.fragment
+def render_ai_intel_tab():
     if not st.session_state.news_df.empty:
         df = st.session_state.news_df
-        
+
+        if st.session_state.get("news_is_fallback", False):
+            st.warning("⚠️ FALLBACK DATA — live news scrape failed, showing offline sample headlines instead.")
+        else:
+            st.success("🟢 LIVE — headlines pulled from Google News just now.")
+
         st.markdown("### 📡 Live AI Intelligence Feed")
         display_df = df[['ticker', 'sentiment', 'confidence', 'headline', 'reasoning']].copy()
         display_df.columns = ['Ticker', 'Trend', 'Confidence (%)', 'Headline', 'AI Logic']
@@ -363,6 +408,9 @@ with tab2:
                 st.error(f"Chart Error: {e}")
     else:
         st.info("No AI data populated. The scanner may have returned an empty batch.")
+
+with tab2:
+    render_ai_intel_tab()
 
 # ==========================================
 # TAB 3: AUTONOMOUS AGENT SIMULATOR
@@ -414,9 +462,14 @@ with tab3:
             st.info("Agent Status: Holding Cash. No high-confidence actionable setups found.")
 
 # ==========================================
-# TAB 4: SMC TECHNICAL ANALYSIS 
+# TAB 4: SMC TECHNICAL ANALYSIS
+# (wrapped in a fragment, with run_every doing the auto-refresh on its
+#  own timer — this replaces the old sidebar toggle + st.rerun() combo,
+#  which reran the ENTIRE script, including reloading Tab 1's live
+#  TradingView widget, every refresh_rate seconds)
 # ==========================================
-with tab4:
+@st.fragment(run_every=refresh_rate if auto_refresh else None)
+def render_smc_tab():
     st.markdown("### 📐 Smart Money Concepts (SMC) Quant Engine")
     
     colA, colB, colC = st.columns([2, 1, 1])
@@ -431,6 +484,11 @@ with tab4:
     st.markdown("---")
     
     if st.button("🧠 Run SMC Quant Math", use_container_width=True):
+        st.session_state.smc_has_run = True
+
+    # Keep showing (and, if auto-refresh is on, keep re-pulling) results
+    # after the first click — not just on the exact run the button was pressed.
+    if st.session_state.get("smc_has_run", False):
         with st.spinner(f"Crunching math for {smc_ticker}..."):
             try:
                 smc_data = yf.download(smc_ticker, period="5d", interval="5m")
@@ -467,9 +525,5 @@ with tab4:
             except Exception as e:
                 st.error(f"SMC Charting Error: {e}")
 
-# ==========================================
-# AUTO-REFRESH EXECUTION LOOP
-# ==========================================
-if auto_refresh:
-    time.sleep(refresh_rate)
-    st.rerun()
+with tab4:
+    render_smc_tab()
