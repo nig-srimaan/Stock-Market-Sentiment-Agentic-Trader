@@ -22,96 +22,118 @@ except ImportError:
 st.set_page_config(page_title="Agentic Stock Scanner", layout="wide", initial_sidebar_state="expanded")
 
 # ==========================================
-# 🚀 ULTRA-DYNAMIC CYBER UI (ANIMATED CSS)
+# 📟 DESIGN SYSTEM — "SENTINEL" TERMINAL
+# A market-surveillance desk, not a generic AI dashboard: near-black
+# graphite, terminal amber, hairline dividers, monospace data. Red and
+# green are reserved ONLY for actual bearish/bullish or risk/safe
+# signals — never used decoratively.
 # ==========================================
 st.markdown("""
 <style>
-    /* Animated Background */
-    @keyframes gradientBG {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+    :root {
+        --bg: #0A0B0D;
+        --panel: #121417;
+        --panel-2: #191C20;
+        --border: rgba(255,255,255,0.08);
+        --amber: #FFB300;
+        --amber-dim: #8A5F00;
+        --text: #E8E6DF;
+        --text-dim: #7B818A;
+        --risk: #FF4136;
+        --safe: #2ECC71;
     }
-    .stApp {
-        background: linear-gradient(-45deg, #0a0f18, #111827, #0d1423, #05080f);
-        background-size: 400% 400%;
-        animation: gradientBG 15s ease infinite;
-        color: #E2E8F0;
-        font-family: 'Inter', sans-serif;
+
+    * { scrollbar-width: thin; scrollbar-color: var(--amber-dim) var(--bg); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 0px; }
+
+    .stApp { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
+    .block-container { padding-top: 1.2rem; }
+    h1, h2, h3 { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
+
+    /* ---- Masthead ---- */
+    .sentinel-header {
+        display: flex; align-items: baseline; justify-content: space-between;
+        border-bottom: 1px solid var(--border); padding-bottom: 12px;
     }
-    
-    /* Glowing Title */
-    @keyframes pulseGlow {
-        0% { text-shadow: 0 0 10px rgba(0,255,170,0.5); }
-        50% { text-shadow: 0 0 25px rgba(0,255,170,0.9), 0 0 35px rgba(0,136,255,0.6); }
-        100% { text-shadow: 0 0 10px rgba(0,255,170,0.5); }
+    .sentinel-title {
+        font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 700;
+        color: var(--amber); letter-spacing: 0.02em; margin: 0;
     }
-    h1 {
-        background: linear-gradient(90deg, #00FFAA, #0088FF);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        font-family: 'Trebuchet MS', sans-serif;
-        font-weight: 900;
-        animation: pulseGlow 3s infinite alternate;
+    .sentinel-title span { color: var(--text-dim); font-weight: 400; font-size: 0.95rem; margin-left: 10px; }
+    .sentinel-status {
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.78rem;
+        color: var(--safe); display: flex; align-items: center; gap: 6px;
     }
-    
-    /* Hover Metric Cards */
+    .sentinel-dot {
+        width: 7px; height: 7px; border-radius: 50%; background: var(--safe);
+        box-shadow: 0 0 6px var(--safe); animation: blinkDot 1.6s ease-in-out infinite;
+    }
+    @keyframes blinkDot { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+    /* ---- Ticker tape (signature element) ---- */
+    .ticker-wrap {
+        width: 100%; overflow: hidden; background: var(--panel);
+        border-bottom: 1px solid var(--border); padding: 7px 0; margin-bottom: 22px;
+    }
+    .ticker-track {
+        display: inline-block; white-space: nowrap;
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem;
+        animation: tickerScroll 32s linear infinite;
+    }
+    .ticker-track span { margin-right: 42px; color: var(--text-dim); }
+    .ticker-track span.up { color: var(--safe); }
+    .ticker-track span.down { color: var(--risk); }
+    @keyframes tickerScroll { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    /* ---- Metric cards ---- */
     [data-testid="stMetric"] {
-        background: rgba(15, 23, 42, 0.6);
-        backdrop-filter: blur(16px);
-        -webkit-backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-top: 2px solid #0088FF;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        position: relative;
-        overflow: hidden;
+        background: var(--panel); border: 1px solid var(--border);
+        border-left: 2px solid var(--amber); border-radius: 2px; padding: 16px 18px;
+        transition: background 0.2s ease;
     }
-    [data-testid="stMetric"]:hover {
-        transform: translateY(-5px) scale(1.02);
-        border-top: 2px solid #00FFAA;
-        box-shadow: 0 15px 35px rgba(0, 255, 170, 0.2);
+    [data-testid="stMetric"]:hover { background: var(--panel-2); }
+    [data-testid="stMetricLabel"] {
+        font-family: 'IBM Plex Mono', monospace; color: var(--text-dim) !important;
+        font-size: 0.75rem !important; text-transform: uppercase; letter-spacing: 0.05em;
     }
-    
-    /* Custom Tabs */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 10px;
-        background-color: transparent;
-    }
+    [data-testid="stMetricValue"] { font-family: 'IBM Plex Mono', monospace; }
+
+    /* ---- Tabs ---- */
+    .stTabs [data-baseweb="tab-list"] { gap: 2px; background: transparent; border-bottom: 1px solid var(--border); }
     .stTabs [data-baseweb="tab"] {
-        background: rgba(30, 41, 59, 0.5);
-        border-radius: 8px 8px 0px 0px;
-        padding: 12px 24px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-bottom: none;
-        color: #94A3B8;
-        font-weight: 600;
-        transition: 0.3s;
+        background: transparent; border-radius: 0; padding: 10px 20px; border: none;
+        color: var(--text-dim); font-family: 'IBM Plex Mono', monospace; font-weight: 500;
+        font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em;
+        transition: color 0.2s ease;
     }
+    .stTabs [data-baseweb="tab"]:hover { color: var(--text); }
     .stTabs [aria-selected="true"] {
-        background: linear-gradient(180deg, rgba(0, 255, 170, 0.15) 0%, rgba(15, 23, 42, 0) 100%);
-        color: #00FFAA !important;
-        border-top: 2px solid #00FFAA !important;
+        background: transparent !important; color: var(--amber) !important;
+        border-bottom: 2px solid var(--amber) !important;
     }
-    
-    /* Buttons */
+
+    /* ---- Buttons ---- */
     .stButton>button {
-        background: linear-gradient(90deg, #0088FF, #0055FF);
-        color: white;
-        border: none;
-        border-radius: 8px;
-        padding: 10px 24px;
-        font-weight: 700;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(0, 136, 255, 0.3);
+        background: transparent; color: var(--amber); border: 1px solid var(--amber-dim);
+        border-radius: 2px; padding: 8px 22px; font-family: 'IBM Plex Mono', monospace;
+        font-weight: 600; font-size: 0.85rem; letter-spacing: 0.03em; transition: all 0.15s ease;
     }
-    .stButton>button:hover {
-        background: linear-gradient(90deg, #00FFAA, #0088FF);
-        box-shadow: 0 0 20px rgba(0, 255, 170, 0.5);
-        transform: scale(1.02);
-        color: black;
+    .stButton>button:hover { background: var(--amber); color: #0A0B0D; border-color: var(--amber); }
+
+    /* ---- Alerts / Dataframes / Sidebar / Selects ---- */
+    [data-testid="stAlert"] {
+        border-radius: 2px; border: 1px solid var(--border);
+        background: var(--panel); font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;
+    }
+    [data-testid="stDataFrame"] { border: 1px solid var(--border); border-radius: 2px; }
+    [data-testid="stSidebar"] { background: var(--panel); border-right: 1px solid var(--border); }
+    [data-testid="stSidebar"] * { font-family: 'IBM Plex Mono', monospace; }
+    [data-baseweb="select"] > div {
+        background: var(--panel) !important; border-color: var(--border) !important; border-radius: 2px !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -193,7 +215,7 @@ def detect_break_and_retest(df, window=14, margin=0.002, cooldown=None):
 def render_dynamic_chart(df, ticker_name, strategy_choice):
     fig = go.Figure(data=[go.Candlestick(
         x=df.index, open=df['Open'], high=df['High'], low=df['Low'], close=df['Close'],
-        increasing_line_color='#00FFAA', decreasing_line_color='#FF3366'
+        increasing_line_color='#2ECC71', decreasing_line_color='#FF4136'
     )])
 
     # Add shapes/markers conditionally based on user choice
@@ -201,17 +223,17 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
         bullish_fvgs, bearish_fvgs = detect_fvg(df)
         for fvg in bullish_fvgs:
             fig.add_shape(type="rect", x0=fvg['x0'], y0=fvg['y0'], x1=fvg['x1'], y1=fvg['y1'],
-                          fillcolor="rgba(0, 255, 170, 0.2)", line=dict(width=0), layer="below")
+                          fillcolor="rgba(46, 204, 113, 0.18)", line=dict(width=0), layer="below")
         for fvg in bearish_fvgs:
             fig.add_shape(type="rect", x0=fvg['x0'], y0=fvg['y0'], x1=fvg['x1'], y1=fvg['y1'],
-                          fillcolor="rgba(255, 51, 102, 0.2)", line=dict(width=0), layer="below")
+                          fillcolor="rgba(255, 65, 54, 0.18)", line=dict(width=0), layer="below")
                           
     elif "Sweep" in strategy_choice:
         sweeps = detect_liquidity_sweep(df)
         if sweeps:
             fig.add_trace(go.Scatter(
                 x=[s['time'] for s in sweeps], y=[s['price'] for s in sweeps],
-                mode='markers', marker=dict(symbol='x', size=10, color='orange'),
+                mode='markers', marker=dict(symbol='x', size=10, color='#FFB300'),
                 hovertext=[s['type'] for s in sweeps], hoverinfo='text+x+y', name="Sweep"
             ))
             
@@ -220,7 +242,7 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
         if brs:
             fig.add_trace(go.Scatter(
                 x=[s['time'] for s in brs], y=[s['price'] for s in brs],
-                mode='markers', marker=dict(symbol='circle', size=10, color='cyan'),
+                mode='markers', marker=dict(symbol='circle', size=10, color='#FFB300'),
                 hovertext=[s['type'] for s in brs], hoverinfo='text+x+y', name="B&R"
             ))
 
@@ -244,12 +266,14 @@ def render_dynamic_chart(df, ticker_name, strategy_choice):
         fig.update_xaxes(rangebreaks=[dict(bounds=["sat", "mon"])])
 
     fig.update_layout(
-        title=f"{ticker_name} - {strategy_choice} Analysis",
+        title=dict(text=f"{ticker_name} — {strategy_choice}", font=dict(family="IBM Plex Mono, monospace", size=15, color="#E8E6DF")),
         xaxis_rangeslider_visible=False,
-        template='plotly_dark',
+        font=dict(family="IBM Plex Mono, monospace", color="#7B818A", size=11),
         height=550,
         margin=dict(l=0, r=0, t=40, b=0),
-        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)'
+        plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
+        xaxis=dict(gridcolor="rgba(255,255,255,0.06)", zerolinecolor="rgba(255,255,255,0.06)"),
+        yaxis=dict(gridcolor="rgba(255,255,255,0.06)", zerolinecolor="rgba(255,255,255,0.06)"),
     )
     return fig
 
@@ -286,7 +310,39 @@ with st.sidebar:
     refresh_rate = st.slider("Refresh Interval (Seconds)", min_value=10, max_value=120, value=30)
     st.caption("Auto-refresh will automatically pull new YFinance data and recalculate SMC setups on a loop.")
 
-st.title("Stockx📈")
+status_live = not st.session_state.get("news_is_fallback", False)
+status_label = "LIVE FEED" if status_live else "FALLBACK DATA"
+status_color = "var(--safe)" if status_live else "var(--risk)"
+
+st.markdown(f"""
+<div class="sentinel-header">
+    <p class="sentinel-title">SENTINEL<span>// Retail Market Surveillance Terminal</span></p>
+    <div class="sentinel-status" style="color:{status_color};">
+        <span class="sentinel-dot" style="background:{status_color}; box-shadow:0 0 6px {status_color};"></span>
+        {status_label}
+    </div>
+</div>
+<div class="ticker-wrap">
+    <div class="ticker-track">
+        <span class="up">NIFTY 50 ▲ 24,812.35</span>
+        <span class="down">RELIANCE.NS ▼ 2,847.10</span>
+        <span class="up">SENSEX ▲ 81,204.88</span>
+        <span class="down">TATAMOTORS.NS ▼ 1,012.40</span>
+        <span class="up">NVDA ▲ 227.94</span>
+        <span>HDFCBANK.NS — 1,684.05</span>
+        <span class="down">INFY.NS ▼ 1,498.20</span>
+        <span class="up">TCS.NS ▲ 4,221.55</span>
+        <span class="up">NIFTY 50 ▲ 24,812.35</span>
+        <span class="down">RELIANCE.NS ▼ 2,847.10</span>
+        <span class="up">SENSEX ▲ 81,204.88</span>
+        <span class="down">TATAMOTORS.NS ▼ 1,012.40</span>
+        <span class="up">NVDA ▲ 227.94</span>
+        <span>HDFCBANK.NS — 1,684.05</span>
+        <span class="down">INFY.NS ▼ 1,498.20</span>
+        <span class="up">TCS.NS ▲ 4,221.55</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ==========================================
 # ACTION 1: ONE-TIME BOOT SCANNER
@@ -416,7 +472,7 @@ def render_ai_intel_tab():
                         high=ai_chart_data['High'], low=ai_chart_data['Low'], 
                         close=ai_chart_data['Close'], name=target_ticker
                     )])
-                    fig2.update_layout(xaxis_rangeslider_visible=False, template="plotly_dark", height=350, margin=dict(l=0, r=0, t=0, b=0), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)')
+                    fig2.update_layout(xaxis_rangeslider_visible=False, height=350, margin=dict(l=0, r=0, t=0, b=0), plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)', font=dict(family="IBM Plex Mono, monospace", color="#7B818A", size=11), xaxis=dict(gridcolor="rgba(255,255,255,0.06)"), yaxis=dict(gridcolor="rgba(255,255,255,0.06)"))
                     st.plotly_chart(fig2, use_container_width=True)
             except Exception as e:
                 st.error(f"Chart Error: {e}")
