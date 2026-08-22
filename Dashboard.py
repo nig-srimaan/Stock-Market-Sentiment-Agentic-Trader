@@ -378,7 +378,7 @@ tab1, tab2, tab3, tab4 = st.tabs([
 # TAB 1: LIVE TERMINAL (TRADINGVIEW WIDGET)
 # ==========================================
 with tab1:
-    st.markdown("### 📈 Live Market Explorer (Tick-by-Tick)")
+    st.markdown("### 📈 Live Market Explorer")
     selected_option = st.selectbox("Search Asset:", POPULAR_STOCKS)
     manual_ticker = selected_option.split(" - ")[0].strip()
     
@@ -406,7 +406,7 @@ with tab1:
           <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
           <script type="text/javascript">
           new TradingView.widget({{
-          "autosize": true, "symbol": "{tv_ticker}", "interval": "1",
+          "autosize": true, "symbol": "{tv_ticker}", "interval": "5",
           "timezone": "exchange", "theme": "dark", "style": "1",
           "locale": "en", "enable_publishing": false, "backgroundColor": "rgba(13, 17, 23, 1)",
           "hide_top_toolbar": false, "save_image": false, "container_id": "tradingview_widget"
