@@ -10,7 +10,7 @@ test_headlines = [
     "Federal reserve leaves interest rates unchanged, market flat."
 ]
 
-print("Sending data to Local Llama 3.2...\n")
+print("Sending data to Groq...\n")
 
 # Run the engine
 result = analyze_sentiment_batch(test_headlines)
