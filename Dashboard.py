@@ -20,7 +20,7 @@ except ImportError:
 # functions defined below. smc_engine.py is kept in the repo as a standalone module
 # but is not wired into this dashboard.
 
-st.set_page_config(page_title="Agentic Stock Scanner", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="SENTINEL — Retail Market Surveillance", layout="wide")
 
 # ==========================================
 # 📟 DESIGN SYSTEM — "SENTINEL" TERMINAL
@@ -52,14 +52,48 @@ st.markdown("""
     ::-webkit-scrollbar-thumb { background: var(--amber-dim); border-radius: 0px; }
 
     .stApp { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; }
-    .block-container { padding-top: 1.2rem; }
+    .block-container { padding-top: 0; max-width: 1180px; margin: 0 auto; }
     h1, h2, h3 { font-family: 'IBM Plex Mono', monospace; letter-spacing: -0.01em; }
 
-    /* ---- Masthead ---- */
-    .sentinel-header {
-        display: flex; align-items: baseline; justify-content: space-between;
-        border-bottom: 1px solid var(--border); padding-bottom: 12px;
+    /* ---- Navbar ---- */
+    .sentinel-nav {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 18px 0; margin-bottom: 0;
     }
+    .sentinel-nav-links { display: flex; gap: 28px; align-items: center; }
+    .sentinel-nav-links a {
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--text-dim);
+        text-decoration: none; text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .sentinel-nav-links a:hover { color: var(--amber); }
+
+    /* ---- How it works ---- */
+    .how-step {
+        border: 1px solid var(--border); background: var(--panel);
+        border-radius: 2px; padding: 22px 20px; height: 100%;
+    }
+    .how-step .num {
+        font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 0.75rem;
+        letter-spacing: 0.1em; margin-bottom: 10px; display: block;
+    }
+    .how-step h4 { margin: 0 0 8px 0; font-size: 1.05rem; }
+    .how-step p { color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; margin: 0; }
+
+    /* ---- Section label ---- */
+    .section-label {
+        font-family: 'IBM Plex Mono', monospace; color: var(--text-dim); font-size: 0.78rem;
+        letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px;
+    }
+    .section-divider { border: none; border-top: 1px solid var(--border); margin: 48px 0 32px 0; }
+
+    /* ---- Footer ---- */
+    .sentinel-footer {
+        text-align: center; padding: 32px 0 20px 0; margin-top: 40px;
+        border-top: 1px solid var(--border);
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.75rem; color: var(--text-dim);
+    }
+
+    /* ---- Masthead ---- */
     .sentinel-title {
         font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem; font-weight: 700;
         color: var(--amber); letter-spacing: 0.02em; margin: 0;
@@ -398,25 +432,24 @@ POPULAR_STOCKS = [
     "HDFCBANK.NS - HDFC Bank", "TATAMOTORS.NS - Tata Motors", "INFY.NS - Infosys"
 ]
 
-# ==========================================
-# SIDEBAR: AUTO-REFRESH CONFIG
-# ==========================================
-with st.sidebar:
-    st.markdown("### ⚙️ Terminal Settings")
-    auto_refresh = st.toggle("Enable Auto-Refresh", value=False)
-    refresh_rate = st.slider("Refresh Interval (Seconds)", min_value=10, max_value=120, value=30)
-    st.caption("Auto-refresh will automatically pull new YFinance data and recalculate SMC setups on a loop.")
+# Auto-refresh is now a small inline control inside the SMC tab itself
+# (see the secondary tools section below) instead of a global sidebar —
+# it only ever affected that one tab anyway.
 
 status_live = not st.session_state.get("news_is_fallback", False)
 status_label = "LIVE FEED" if status_live else "FALLBACK DATA"
 status_color = "var(--safe)" if status_live else "var(--risk)"
 
 st.markdown(f"""
-<div class="sentinel-header">
-    <p class="sentinel-title">SENTINEL<span>// Retail Market Surveillance Terminal</span></p>
-    <div class="sentinel-status" style="color:{status_color};">
-        <span class="sentinel-dot" style="background:{status_color}; box-shadow:0 0 6px {status_color};"></span>
-        {status_label}
+<div class="sentinel-nav">
+    <p class="sentinel-title">SENTINEL<span>// Retail Market Surveillance</span></p>
+    <div class="sentinel-nav-links">
+        <a href="#how-it-works">How it works</a>
+        <a href="#methodology">Methodology</a>
+        <div class="sentinel-status" style="color:{status_color};">
+            <span class="sentinel-dot" style="background:{status_color}; box-shadow:0 0 6px {status_color};"></span>
+            {status_label}
+        </div>
     </div>
 </div>
 <div class="ticker-wrap">
@@ -520,6 +553,39 @@ with hero_right:
         )
 
         analyze_clicked = st.button("🔍 Analyze This Tip", use_container_width=True, key="analyze_tip_btn")
+
+st.markdown("""
+<hr class="section-divider" id="how-it-works">
+<p class="section-label">How it works</p>
+""", unsafe_allow_html=True)
+
+how1, how2, how3 = st.columns(3, gap="medium")
+with how1:
+    st.markdown("""
+    <div class="how-step">
+        <span class="num">STEP 01</span>
+        <h4>Paste the tip</h4>
+        <p>Drop in the tip text, the ticker it's about, and the source if you know it — a Telegram channel, an advisor, a name.</p>
+    </div>
+    """, unsafe_allow_html=True)
+with how2:
+    st.markdown("""
+    <div class="how-step">
+        <span class="num">STEP 02</span>
+        <h4>We run 3 checks</h4>
+        <p>Tip language for manipulation markers, live price/volume for engineered-looking spikes, and the source against a registered-advisor reference list.</p>
+    </div>
+    """, unsafe_allow_html=True)
+with how3:
+    st.markdown("""
+    <div class="how-step">
+        <span class="num">STEP 03</span>
+        <h4>You get a verdict</h4>
+        <p>One risk score, broken into its 3 parts with the actual evidence — not a black box telling you to just trust it.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown('<hr class="section-divider" id="methodology">', unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
 
@@ -628,7 +694,15 @@ if st.session_state.get("tip_analysis_result"):
 # Collapsed by default -- supporting evidence, not competing for
 # attention with the primary Tip Checker above.
 # ==========================================
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("""
+<hr class="section-divider">
+<p class="section-label">Powered by</p>
+<h3 style="margin:0 0 6px 0; font-size:1.3rem;">The market intelligence engine underneath</h3>
+<p style="color:var(--text-dim); font-size:0.88rem; max-width:640px; margin-bottom:20px;">
+SENTINEL's detection logic is repurposed from an existing, working system — live terminal,
+AI news sentiment, an autonomous risk agent, and the SMC/ICT structural engine. Open this to
+inspect it directly.</p>
+""", unsafe_allow_html=True)
 with st.expander("⚙️ Underlying Market Intelligence Engine (existing system)", expanded=False):
     tab1, tab2, tab3, tab4 = st.tabs([
         "🔍 LIVE TERMINAL",
@@ -793,12 +867,10 @@ with st.expander("⚙️ Underlying Market Intelligence Engine (existing system)
 
     # ==========================================
     # TAB 4: SMC TECHNICAL ANALYSIS
-    # (wrapped in a fragment, with run_every doing the auto-refresh on its
-    #  own timer — this replaces the old sidebar toggle + st.rerun() combo,
-    #  which reran the ENTIRE script, including reloading Tab 1's live
-    #  TradingView widget, every refresh_rate seconds)
+    # (wrapped in a plain fragment so its button clicks stay scoped to
+    #  this tab and don't force a full-page rerun of the tools around it)
     # ==========================================
-    @st.fragment(run_every=refresh_rate if auto_refresh else None)
+    @st.fragment
     def render_smc_tab():
         st.markdown("### 📐 Smart Money Concepts (SMC) Quant Engine")
     
@@ -857,3 +929,9 @@ with st.expander("⚙️ Underlying Market Intelligence Engine (existing system)
 
     with tab4:
         render_smc_tab()
+
+st.markdown("""
+<div class="sentinel-footer">
+    SENTINEL — Built for Smart India Hackathon 2026 &nbsp;·&nbsp; FinTech Domain &nbsp;·&nbsp; Retail Investor Protection
+</div>
+""", unsafe_allow_html=True)
