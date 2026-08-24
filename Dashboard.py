@@ -648,62 +648,83 @@ if analyze_clicked:
             }
 
 if st.session_state.get("tip_analysis_result"):
+    st.markdown('<p class="section-label" style="margin-top:8px;">Analysis Result</p>', unsafe_allow_html=True)
     res = st.session_state.tip_analysis_result
     score = res["risk_score"]
     if score >= 66:
         verdict, color = "HIGH RISK", "var(--risk)"
+        verdict_hex = "#FF4136"
     elif score >= 33:
         verdict, color = "MEDIUM RISK", "var(--amber)"
+        verdict_hex = "#FFB300"
     else:
         verdict, color = "LOW RISK", "var(--safe)"
+        verdict_hex = "#2ECC71"
+
+    import math as _math
+    _circumference = 2 * _math.pi * 52
+    _offset = _circumference * (1 - score / 100)
 
     st.markdown(f"""
-    <div style="border: 1px solid var(--border); border-left: 3px solid {color}; background: var(--panel); border-radius: 2px; padding: 20px 24px; margin: 20px 0;">
-        <div style="display:flex; align-items:baseline; gap:16px;">
-            <span style="font-family:'IBM Plex Mono',monospace; font-size:2.6rem; font-weight:700; color:{color};">{score}</span>
-            <span style="font-family:'IBM Plex Mono',monospace; font-size:1.1rem; color:{color}; text-transform:uppercase; letter-spacing:0.04em;">{verdict}</span>
+    <div style="border: 1px solid var(--border); border-left: 3px solid {color}; background: var(--panel);
+         border-radius: 2px; padding: 20px 28px; margin: 20px 0; display:flex; align-items:center; gap:26px;">
+        <svg width="128" height="128" viewBox="0 0 128 128" style="flex-shrink:0;">
+            <circle cx="64" cy="64" r="52" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="9"/>
+            <circle cx="64" cy="64" r="52" fill="none" stroke="{verdict_hex}" stroke-width="9"
+                stroke-dasharray="{_circumference:.1f}" stroke-dashoffset="{_offset:.1f}"
+                stroke-linecap="round" transform="rotate(-90 64 64)" style="transition:stroke-dashoffset 0.6s ease;"/>
+            <text x="64" y="60" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="28"
+                font-weight="700" fill="{verdict_hex}">{score}</text>
+            <text x="64" y="80" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10"
+                fill="#7B818A">/ 100</text>
+        </svg>
+        <div>
+            <span style="font-family:'IBM Plex Mono',monospace; font-size:1.3rem; color:{color}; text-transform:uppercase; letter-spacing:0.04em; font-weight:700;">{verdict}</span>
+            <p style="color:var(--text-dim); font-size:0.85rem; margin-top:8px; max-width:480px;">Manipulation Risk Score — combining tip language (45%), price/volume behavior (35%), and advisor verification (20%)</p>
         </div>
-        <p style="color:var(--text-dim); font-size:0.85rem; margin-top:8px;">Manipulation Risk Score — combining tip language (45%), price/volume behavior (35%), and advisor verification (20%)</p>
     </div>
     """, unsafe_allow_html=True)
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown("**📝 Tip Language**")
-        st.metric("Manipulation Score", f"{res['tip_result'].get('manipulation_score', 0)}/100")
-        flags = res['tip_result'].get('red_flags', [])
-        if flags:
-            for f in flags:
-                st.markdown(f"- _{f}_")
-        else:
-            st.caption("No manipulation-language markers detected")
-        if res['tip_result'].get('reasoning'):
-            st.caption(res['tip_result']['reasoning'])
+        with st.container(border=True):
+            st.markdown("**📝 Tip Language**")
+            st.metric("Manipulation Score", f"{res['tip_result'].get('manipulation_score', 0)}/100")
+            flags = res['tip_result'].get('red_flags', [])
+            if flags:
+                for f in flags:
+                    st.markdown(f"- _{f}_")
+            else:
+                st.caption("No manipulation-language markers detected")
+            if res['tip_result'].get('reasoning'):
+                st.caption(res['tip_result']['reasoning'])
 
     with c2:
-        st.markdown("**📊 Price/Volume Anomaly**")
-        vs = res['volume_spike']
-        st.metric("Volume vs. Average", f"{vs['ratio']}x")
-        if vs['flagged']:
-            st.markdown(f"🔴 Latest volume (**{vs['latest_volume']:,}**) is **{vs['ratio']}x** the 20-candle average (**{vs['avg_volume']:,}**) — consistent with artificial hype")
-        else:
-            st.caption("No abnormal volume spike detected")
-        if res['sweeps']:
-            st.caption(f"{len(res['sweeps'])} liquidity sweep(s) detected in recent price action")
+        with st.container(border=True):
+            st.markdown("**📊 Price/Volume Anomaly**")
+            vs = res['volume_spike']
+            st.metric("Volume vs. Average", f"{vs['ratio']}x")
+            if vs['flagged']:
+                st.markdown(f"🔴 Latest volume (**{vs['latest_volume']:,}**) is **{vs['ratio']}x** the 20-candle average (**{vs['avg_volume']:,}**) — consistent with artificial hype")
+            else:
+                st.caption("No abnormal volume spike detected")
+            if res['sweeps']:
+                st.caption(f"{len(res['sweeps'])} liquidity sweep(s) detected in recent price action")
 
     with c3:
-        st.markdown("**✅ Advisor Verification**")
-        ac = res['advisor_check']
-        if not ac['checked']:
-            st.caption("No source provided — treated as unverifiable")
-        elif ac['registered']:
-            st.markdown("🟢 Matches a known registered source")
-        else:
-            st.markdown("🔴 Not found in registered-advisor reference list")
-        st.caption("Demo reference list only — not a live SEBI database lookup")
+        with st.container(border=True):
+            st.markdown("**✅ Advisor Verification**")
+            ac = res['advisor_check']
+            if not ac['checked']:
+                st.caption("No source provided — treated as unverifiable")
+            elif ac['registered']:
+                st.markdown("🟢 Matches a known registered source")
+            else:
+                st.markdown("🔴 Not found in registered-advisor reference list")
+            st.caption("Demo reference list only — not a live SEBI database lookup")
 
     if not res['price_df'].empty:
-        st.markdown("#### Price & Volume Evidence")
+        st.markdown('<p class="section-label" style="margin-top:28px;">Evidence</p>', unsafe_allow_html=True)
         fig = render_tip_analysis_chart(res['price_df'], res['ticker'], res['sweeps'], res['volume_spike'])
         st.plotly_chart(fig, use_container_width=True)
         st.caption("Red volume bar = the anomalous spike flagged above. Amber ✕ marks = liquidity sweeps (price wicking beyond a recent high/low and snapping back) — a pattern consistent with engineered price action, not organic trading.")
