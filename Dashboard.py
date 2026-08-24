@@ -67,17 +67,42 @@ st.markdown("""
     }
     .sentinel-nav-links a:hover { color: var(--amber); }
 
-    /* ---- How it works ---- */
-    .how-step {
-        border: 1px solid var(--border); background: var(--panel);
-        border-radius: 2px; padding: 22px 20px; height: 100%;
+    /* ---- Radar visual (signature graphic — surveillance made literal) ---- */
+    .radar-wrap { position: relative; width: 260px; height: 260px; margin: 8px auto 0 auto; }
+    .radar-ring { position: absolute; border-radius: 50%; border: 1px solid rgba(255,255,255,0.08); }
+    .radar-sweep {
+        position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+        background: conic-gradient(from 0deg, rgba(255,179,0,0.4), rgba(255,179,0,0) 22%);
+        animation: radarSpin 4.5s linear infinite;
     }
-    .how-step .num {
-        font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-size: 0.75rem;
-        letter-spacing: 0.1em; margin-bottom: 10px; display: block;
+    @keyframes radarSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .radar-blip { position: absolute; width: 7px; height: 7px; border-radius: 50%; animation: blipPulse 2.2s ease-in-out infinite; }
+    @keyframes blipPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+    .radar-core {
+        position: absolute; top: 50%; left: 50%; width: 7px; height: 7px; margin: -3.5px;
+        border-radius: 50%; background: var(--amber); box-shadow: 0 0 10px var(--amber);
     }
-    .how-step h4 { margin: 0 0 8px 0; font-size: 1.05rem; }
-    .how-step p { color: var(--text-dim); font-size: 0.85rem; line-height: 1.5; margin: 0; }
+    .radar-crosshair { position: absolute; background: rgba(255,255,255,0.06); }
+
+    /* ---- Inline stat strip (no boxes — dividers instead) ---- */
+    .stat-strip { display: flex; gap: 0; margin-top: 22px; }
+    .stat-strip .stat { flex: 1; padding: 0 18px; text-align: center; }
+    .stat-strip .stat:not(:last-child) { border-right: 1px solid var(--border); }
+    .stat-strip .stat .n { font-family: 'IBM Plex Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--amber); }
+    .stat-strip .stat .l { color: var(--text-dim); font-size: 0.68rem; line-height: 1.3; margin-top: 2px; }
+
+    /* ---- How it works: connected flow, not a feature grid ---- */
+    .flow-wrap { display: flex; align-items: flex-start; margin: 18px 0 8px 0; }
+    .flow-node { display: flex; flex-direction: column; align-items: center; text-align: center; width: 210px; }
+    .flow-node .dot {
+        width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--amber-dim);
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'IBM Plex Mono', monospace; color: var(--amber); font-weight: 700; font-size: 1rem;
+        background: var(--panel); flex-shrink: 0;
+    }
+    .flow-node h4 { margin: 14px 0 6px 0; font-size: 0.95rem; }
+    .flow-node p { color: var(--text-dim); font-size: 0.8rem; line-height: 1.5; margin: 0; padding: 0 6px; }
+    .flow-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--amber-dim), var(--border)); margin-top: 20px; min-width: 20px; }
 
     /* ---- Section label ---- */
     .section-label {
@@ -508,28 +533,34 @@ with hero_left:
        letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px;">Retail Investor Protection</p>
     <h1 style="margin:0 0 14px 0;font-size:2.3rem;line-height:1.18;font-family:'IBM Plex Mono',monospace;
        font-weight:700;">Check a tip<br>before you act on it.</h1>
-    <p style="color:var(--text-dim);font-size:1rem;line-height:1.6;max-width:440px;margin-bottom:30px;">
+    <p style="color:var(--text-dim);font-size:1rem;line-height:1.6;max-width:440px;margin-bottom:6px;">
        Paste any stock tip and SENTINEL cross-checks it against tip language, live price/volume behavior,
        and advisor registration — before you risk real money on it.</p>
     """, unsafe_allow_html=True)
 
     st.markdown("""
-    <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:8px;">
-        <div style="border:1px solid var(--border); border-left:2px solid var(--amber); background:var(--panel);
-             border-radius:2px; padding:12px 16px; flex:1; min-width:120px;">
-            <p style="font-family:'IBM Plex Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--amber); margin:0;">62%</p>
-            <p style="color:var(--text-dim); font-size:0.72rem; margin:2px 0 0 0; line-height:1.3;">of retail investors influenced by finfluencers — SEBI FY26</p>
-        </div>
-        <div style="border:1px solid var(--border); border-left:2px solid var(--amber); background:var(--panel);
-             border-radius:2px; padding:12px 16px; flex:1; min-width:120px;">
-            <p style="font-family:'IBM Plex Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--amber); margin:0;">3</p>
-            <p style="color:var(--text-dim); font-size:0.72rem; margin:2px 0 0 0; line-height:1.3;">independent signals combined into one explainable score</p>
-        </div>
-        <div style="border:1px solid var(--border); border-left:2px solid var(--amber); background:var(--panel);
-             border-radius:2px; padding:12px 16px; flex:1; min-width:120px;">
-            <p style="font-family:'IBM Plex Mono',monospace; font-size:1.4rem; font-weight:700; color:var(--amber); margin:0;">0</p>
-            <p style="color:var(--text-dim); font-size:0.72rem; margin:2px 0 0 0; line-height:1.3;">black boxes — every signal is shown, not hidden</p>
-        </div>
+    <div class="radar-wrap">
+        <div class="radar-ring" style="inset:0;"></div>
+        <div class="radar-ring" style="inset:32px;"></div>
+        <div class="radar-ring" style="inset:64px;"></div>
+        <div class="radar-ring" style="inset:96px;"></div>
+        <div class="radar-crosshair" style="top:50%; left:0; right:0; height:1px;"></div>
+        <div class="radar-crosshair" style="left:50%; top:0; bottom:0; width:1px;"></div>
+        <div class="radar-sweep"></div>
+        <div class="radar-blip" style="top:28%; left:68%; background:var(--risk); animation-delay:0s;"></div>
+        <div class="radar-blip" style="top:66%; left:26%; background:var(--safe); animation-delay:0.9s;"></div>
+        <div class="radar-blip" style="top:74%; left:70%; background:var(--amber); animation-delay:1.6s;"></div>
+        <div class="radar-core"></div>
+    </div>
+    <p style="text-align:center; color:var(--text-dim); font-size:0.7rem; font-family:'IBM Plex Mono',monospace;
+       letter-spacing:0.06em; text-transform:uppercase; margin-top:10px;">scanning for manipulation patterns</p>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="stat-strip">
+        <div class="stat"><div class="n">62%</div><div class="l">of investors influenced by finfluencers — SEBI FY26</div></div>
+        <div class="stat"><div class="n">3</div><div class="l">independent signals, one explainable score</div></div>
+        <div class="stat"><div class="n">0</div><div class="l">black boxes — every signal shown</div></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -554,40 +585,34 @@ with hero_right:
 
         analyze_clicked = st.button("🔍 Analyze This Tip", use_container_width=True, key="analyze_tip_btn")
 
-st.markdown("""
+st.markdown(f"""
 <hr class="section-divider" id="how-it-works">
 <p class="section-label">How it works</p>
-""", unsafe_allow_html=True)
-
-how1, how2, how3 = st.columns(3, gap="medium")
-with how1:
-    st.markdown("""
-    <div class="how-step">
-        <span class="num">STEP 01</span>
+<div class="flow-wrap">
+    <div class="flow-node">
+        <div class="dot">01</div>
         <h4>Paste the tip</h4>
-        <p>Drop in the tip text, the ticker it's about, and the source if you know it — a Telegram channel, an advisor, a name.</p>
+        <p>Tip text, the ticker it's about, and the source if you know it — a Telegram channel, an advisor, a name.</p>
     </div>
-    """, unsafe_allow_html=True)
-with how2:
-    st.markdown("""
-    <div class="how-step">
-        <span class="num">STEP 02</span>
+    <div class="flow-line"></div>
+    <div class="flow-node">
+        <div class="dot">02</div>
         <h4>We run 3 checks</h4>
-        <p>Tip language for manipulation markers, live price/volume for engineered-looking spikes, and the source against a registered-advisor reference list.</p>
+        <p>Tip language for manipulation markers, live price/volume for engineered-looking spikes, source against a registered-advisor list.</p>
     </div>
-    """, unsafe_allow_html=True)
-with how3:
-    st.markdown("""
-    <div class="how-step">
-        <span class="num">STEP 03</span>
+    <div class="flow-line"></div>
+    <div class="flow-node">
+        <div class="dot">03</div>
         <h4>You get a verdict</h4>
         <p>One risk score, broken into its 3 parts with the actual evidence — not a black box telling you to just trust it.</p>
     </div>
-    """, unsafe_allow_html=True)
-
-st.markdown('<hr class="section-divider" id="methodology">', unsafe_allow_html=True)
+</div>
+<hr class="section-divider" id="methodology">
+""", unsafe_allow_html=True)
 
 st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+
+
 
 if analyze_clicked:
     if not tip_ticker.strip() or not tip_text.strip():
