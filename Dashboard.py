@@ -184,6 +184,28 @@ st.markdown("""
     }
     .stButton>button:hover { background: var(--amber); color: #0A0B0D; border-color: var(--amber); }
 
+    /* Primary CTA ("Analyze This Tip") gets real visual weight — it's the
+       one action on this page that matters, it shouldn't look identical
+       to a secondary button buried in the tools section below. */
+    .st-key-analyze_tip_btn button {
+        background: var(--amber) !important; color: #0A0B0D !important;
+        border: none !important; padding: 12px 22px !important; font-size: 0.92rem !important;
+        box-shadow: 0 0 0 rgba(255,179,0,0); transition: all 0.2s ease !important;
+    }
+    .st-key-analyze_tip_btn button:hover {
+        box-shadow: 0 4px 20px rgba(255,179,0,0.35) !important; transform: translateY(-1px);
+    }
+
+    /* ---- Expander (unstyled by default -- would clash badly against a
+       dark page otherwise) ---- */
+    [data-testid="stExpander"] {
+        background: var(--panel); border: 1px solid var(--border); border-radius: 2px;
+    }
+    [data-testid="stExpander"] summary {
+        font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem; color: var(--text);
+    }
+    [data-testid="stExpander"] summary:hover { color: var(--amber); }
+
     /* ---- Alerts / Dataframes / Sidebar / Selects ---- */
     [data-testid="stAlert"] {
         border-radius: 2px; border: 1px solid var(--border);
