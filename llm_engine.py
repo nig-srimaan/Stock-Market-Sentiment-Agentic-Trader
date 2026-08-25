@@ -96,3 +96,88 @@ def analyze_sentiment_batch(headlines_list):
     except Exception as e:
         print(f"CRITICAL ERROR: {e}")
         return "[]"
+
+
+def analyze_tip(tip_text):
+    """
+    Analyzes a raw, user-pasted stock tip for pump-and-dump / manipulation
+    language markers. Returns a JSON string:
+    {manipulation_score, red_flags, ticker_mentioned, reasoning}
+    """
+    empty_result = json.dumps({"manipulation_score": 0, "red_flags": [], "ticker_mentioned": "", "reasoning": ""})
+
+    if not tip_text or not tip_text.strip():
+        return empty_result
+
+    if not GROQ_API_KEY:
+        print("❌ GROQ_API_KEY not set in .env — cannot call the LLM.")
+        return json.dumps({"manipulation_score": 0, "red_flags": [], "ticker_mentioned": "", "reasoning": "GROQ_API_KEY not set"})
+
+    prompt = f"""
+    You are a financial-fraud analyst. Analyze this stock tip/message for
+    pump-and-dump or manipulation language patterns.
+
+    Look specifically for:
+    - Guaranteed-return claims ("guaranteed", "sure shot", "can't lose", "risk-free")
+    - Urgency / FOMO pressure ("buy now", "before it's too late", "today only", "last chance")
+    - Vague hype without substance ("multibagger", "rocket", "moon", "jackpot")
+    - Unverifiable insider-style claims ("my source says", "confirmed news", "inside info")
+    - Excessive emoji or ALL-CAPS used purely as hype markers
+
+    Message:
+    \"\"\"{tip_text}\"\"\"
+
+    Extract: a manipulation_score from 0 (completely legitimate, factual, sourced) to
+    100 (textbook pump-and-dump language), a list of the specific red-flag phrases you
+    found verbatim in the text (max 5, empty list if none), the stock ticker mentioned
+    if any in Yahoo Finance format (e.g. RELIANCE.NS for Indian stocks, NVDA for US —
+    empty string if no ticker is identifiable), and one-sentence reasoning.
+    """
+
+    json_schema = {
+        "name": "tip_analysis",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "properties": {
+                "manipulation_score": {"type": "integer"},
+                "red_flags": {"type": "array", "items": {"type": "string"}},
+                "ticker_mentioned": {"type": "string"},
+                "reasoning": {"type": "string"}
+            },
+            "required": ["manipulation_score", "red_flags", "ticker_mentioned", "reasoning"],
+            "additionalProperties": False
+        }
+    }
+
+    try:
+        response = requests.post(
+            GROQ_URL,
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": GROQ_MODEL,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+                "response_format": {"type": "json_schema", "json_schema": json_schema}
+            },
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            raw_response = response.json()["choices"][0]["message"]["content"]
+            print(f"RAW GROQ TIP ANALYSIS:\n{raw_response}\n")
+            try:
+                json.loads(raw_response)  # validate before handing back
+                return raw_response
+            except json.JSONDecodeError:
+                return empty_result
+        else:
+            print(f"GROQ API ERROR (tip): {response.status_code} - {response.text[:300]}")
+            return empty_result
+
+    except Exception as e:
+        print(f"CRITICAL ERROR (tip): {e}")
+        return empty_result
