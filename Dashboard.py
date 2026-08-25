@@ -104,6 +104,16 @@ st.markdown("""
     .flow-node p { color: var(--text-dim); font-size: 0.8rem; line-height: 1.5; margin: 0; padding: 0 6px; }
     .flow-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--amber-dim), var(--border)); margin-top: 20px; min-width: 20px; }
 
+    /* ---- Responsive: the flow diagram and radar are hand-built flexbox,
+       not Streamlit's native columns — those stack automatically on narrow
+       screens, this doesn't, unless we tell it to. */
+    @media (max-width: 900px) {
+        .flow-wrap { flex-direction: column; align-items: center; }
+        .flow-node { width: 100%; max-width: 340px; }
+        .flow-line { flex: none; width: 1px; height: 28px; margin: 0; }
+        .radar-wrap { width: 200px; height: 200px; }
+    }
+
     /* ---- Section label ---- */
     .section-label {
         font-family: 'IBM Plex Mono', monospace; color: var(--text-dim); font-size: 0.78rem;
@@ -594,7 +604,7 @@ with hero_right:
 
         col_a, col_b = st.columns(2)
         with col_a:
-            tip_ticker = st.text_input("Stock Ticker", placeholder="e.g. RELIANCE.NS or NVDA", key="tip_ticker_input")
+            tip_ticker = st.text_input("Stock Ticker (optional)", placeholder="e.g. RELIANCE.NS — leave blank to auto-detect", key="tip_ticker_input")
         with col_b:
             tip_source = st.text_input("Source / Advisor Name (optional)", placeholder="e.g. Telegram channel, advisor name", key="tip_source_input")
 
@@ -637,8 +647,8 @@ st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
 
 
 if analyze_clicked:
-    if not tip_ticker.strip() or not tip_text.strip():
-        st.warning("⚠️ Please provide both a ticker and the tip text.")
+    if not tip_text.strip():
+        st.warning("⚠️ Please paste the tip text to analyze.")
     else:
         with st.spinner("Running tip through the detection pipeline..."):
             tip_result_raw = analyze_tip(tip_text)
@@ -647,10 +657,17 @@ if analyze_clicked:
             except json.JSONDecodeError:
                 tip_result = {"manipulation_score": 0, "red_flags": [], "ticker_mentioned": "", "reasoning": "Analysis failed"}
 
+            # Prefer what the user typed; fall back to what the AI extracted
+            # from the tip text itself if the ticker field was left blank.
+            resolved_ticker = tip_ticker.strip().upper() or tip_result.get("ticker_mentioned", "").strip().upper()
+
             try:
-                price_df = yf.download(tip_ticker.strip(), period="5d", interval="5m", progress=False)
-                if isinstance(price_df.columns, pd.MultiIndex):
-                    price_df.columns = price_df.columns.droplevel(1)
+                if resolved_ticker:
+                    price_df = yf.download(resolved_ticker, period="5d", interval="5m", progress=False)
+                    if isinstance(price_df.columns, pd.MultiIndex):
+                        price_df.columns = price_df.columns.droplevel(1)
+                else:
+                    price_df = pd.DataFrame()
             except Exception:
                 price_df = pd.DataFrame()
 
@@ -666,7 +683,7 @@ if analyze_clicked:
 
             st.session_state.tip_analysis_result = {
                 "risk_score": risk_score, "tip_result": tip_result, "volume_spike": volume_spike,
-                "sweeps": sweeps, "advisor_check": advisor_check, "price_df": price_df, "ticker": tip_ticker.strip()
+                "sweeps": sweeps, "advisor_check": advisor_check, "price_df": price_df, "ticker": resolved_ticker
             }
 
 if st.session_state.get("tip_analysis_result"):
@@ -751,7 +768,10 @@ if st.session_state.get("tip_analysis_result"):
         st.plotly_chart(fig, use_container_width=True)
         st.caption("Red volume bar = the anomalous spike flagged above. Amber ✕ marks = liquidity sweeps (price wicking beyond a recent high/low and snapping back) — a pattern consistent with engineered price action, not organic trading.")
     else:
-        st.info("Could not pull price/volume data for this ticker — showing tip-language and advisor signals only.")
+        if not res['ticker']:
+            st.info("No ticker was provided and none could be extracted from the tip text — showing tip-language and advisor signals only.")
+        else:
+            st.info(f"Could not pull price/volume data for '{res['ticker']}' — showing tip-language and advisor signals only.")
 
 # ==========================================
 # TAB 1: LIVE TERMINAL (TRADINGVIEW WIDGET)
